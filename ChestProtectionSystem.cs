@@ -1,36 +1,39 @@
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;
-using Terraria;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
-using Terraria.DataStructures;
 
 namespace SafeChests
 {
     public class ChestProtectionSystem : ModSystem
     {
-        public static HashSet<Point> ProtectedChests = new();
+        public static Dictionary<Point, string> ProtectedChests = new();
 
-        public static void ToggleChestProtection(int x, int y)
+        public static void ToggleChestProtection(int x, int y, string password = "")
         {
             Point chestPos = new(x, y);
-            if (ProtectedChests.Contains(chestPos))
+            if (ProtectedChests.ContainsKey(chestPos))
                 ProtectedChests.Remove(chestPos);
             else
-                ProtectedChests.Add(chestPos);
+                ProtectedChests.Add(chestPos, password);
         }
 
-        public static bool IsChestProtected(int x, int y) => ProtectedChests.Contains(new Point(x, y));
+        public static bool IsChestProtected(int x, int y) => ProtectedChests.ContainsKey(new Point(x, y));
+
+        public static string GetChestPassword(int x, int y) => ProtectedChests.TryGetValue(new Point(x, y), out string password) ? password : "";
 
         public override void SaveWorldData(TagCompound tag)
         {
-            List<int> data = new();
-            foreach (var pos in ProtectedChests)
+            List<int> positions = new();
+            List<string> passwords = new();
+            foreach (var pair in ProtectedChests)
             {
-                data.Add(pos.X);
-                data.Add(pos.Y);
+                positions.Add(pair.Key.X);
+                positions.Add(pair.Key.Y);
+                passwords.Add(pair.Value);
             }
-            tag["ProtectedChests"] = data;
+            tag["ProtectedChests"] = positions;
+            tag["ProtectedChestsPassword"] = passwords;
         }
 
         public override void LoadWorldData(TagCompound tag)
@@ -38,10 +41,11 @@ namespace SafeChests
             ProtectedChests.Clear();
             if (tag.ContainsKey("ProtectedChests"))
             {
-                var data = tag.Get<List<int>>("ProtectedChests");
-                for (int i = 0; i < data.Count; i += 2)
+                var positions = tag.Get<List<int>>("ProtectedChests");
+                var passwords = tag.Get<List<string>>("ProtectedChestsPassword");
+                for (int i = 0; i < positions.Count; i += 2)
                 {
-                    ProtectedChests.Add(new Point(data[i], data[i + 1]));
+                    ProtectedChests.Add(new Point(positions[i], positions[i + 1]), passwords[i / 2]);
                 }
             }
         }

@@ -2,11 +2,7 @@ using Microsoft.Xna.Framework;
 using System.Collections.Generic;
 using Terraria;
 using Terraria.ModLoader;
-using Terraria.ModLoader.IO;
 using Terraria.UI;
-using Terraria.GameContent.UI.Elements;
-using Terraria.ID;
-using Terraria.DataStructures;
 using SafeChests.UI;
 
 namespace SafeChests
@@ -43,15 +39,26 @@ namespace SafeChests
                     {
                         if (Main.playerInventory && Main.player[Main.myPlayer].chest != -1)
                         {
-                            _chestInterface.Draw(Main.spriteBatch, new GameTime());
-                            // Ocultar ítems si el cofre está protegido
-                            if (ChestProtectionSystem.IsChestProtected(Main.chest[Main.player[Main.myPlayer].chest].x, Main.chest[Main.player[Main.myPlayer].chest].y))
+                            Chest chest = Main.chest[Main.player[Main.myPlayer].chest];
+                            if (chest != null)
                             {
-                                Main.instance.invBottom = 1000; // Oculta los ítems
+                                bool isLocked = ChestProtectionSystem.IsChestProtected(chest.x, chest.y);
+                                // Dibujar siempre la interfaz de usuario personalizada
+                                _chestInterface.Draw(Main.spriteBatch, new GameTime());
+                                // Ocultar objetos del inventario si el cofre está protegido
+                                if (isLocked)
+                                {
+                                    Main.instance.invBottom = 1000; // Ocultar los items
+                                }
+                                else
+                                {
+                                    Main.instance.invBottom = 258; // Mostrar los items
+                                }
                             }
                             else
                             {
-                                Main.instance.invBottom = 258; // Posición normal de la UI
+                                // Mostrar inventario normal si el cofre es nulo
+                                Main.instance.invBottom = 258;
                             }
                         }
                         return true;

@@ -1,4 +1,3 @@
-using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.ModLoader;
 
@@ -11,11 +10,6 @@ namespace SafeChests
             if (Player.chest != -1)
             {
                 Chest chest = Main.chest[Player.chest];
-                if (chest != null && ChestProtectionSystem.IsChestProtected(chest.x, chest.y))
-                {
-                    Main.NewText("Este cofre está protegido con SafeChests.", Color.Red);
-                    // No cerramos el cofre, permitimos que la UI permanezca abierta
-                }
             }
         }
     }

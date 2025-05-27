@@ -2,15 +2,30 @@ using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.GameContent.UI.Elements;
 using Terraria.UI;
+using System.Linq;
 
 namespace SafeChests.UI
 {
     internal class ChestButtonUI : UIState
     {
+        private enum UIMode { None, Protect, Unlock }
         private UITextPanel<string> protectButton;
+        private UITextPanel<string> passwordLabel; // Etiqueta para Contraseña (Protect mode)
+        private UIInputTextField passwordInput; // Input de contraseña (Protect mode)
+        private UITextPanel<string> confirmPasswordLabel; // Etiqueta para Confirmar Contraseña (Protect mode)
+        private UIInputTextField confirmPasswordInput; // Input de confirmar contraseña (Protect mode)
+        private UITextPanel<string> unlockPasswordLabel; // Etiqueta para Ingresar contraseña (Unlock mode)
+        private UIInputTextField unlockPasswordInput; // Input para desbloquear (Unlock mode)
+        private UITextPanel<string> acceptButton; // Botón de Aceptar (used in both modes)
+        private string lastPasswordInput = ""; // Para rastrear cambios en la contraseña (Protect mode)
+        private string lastConfirmPasswordInput = ""; // Para rastrear cambios en confirmar contraseña (Protect mode)
+        private string lastUnlockPasswordInput = ""; // Para rastrear cambios en la contraseña de desbloqueo (Unlock mode)
+        private UIMode currentMode = UIMode.None; // Modo actual de la UI
+        private int lastChestIndex = -1; // Seguimiento del último cofre abierto para detectar cambios
 
         public override void OnInitialize()
         {
+            // Botón de proteger/desbloquear cofre
             protectButton = new UITextPanel<string>("Proteger cofre", 0.8f, false)
             {
                 Width = { Pixels = 120 },
@@ -35,26 +50,248 @@ namespace SafeChests.UI
                     Chest chest = Main.chest[chestIndex];
                     if (chest != null)
                     {
-                        ChestProtectionSystem.ToggleChestProtection(chest.x, chest.y);
                         bool isLocked = ChestProtectionSystem.IsChestProtected(chest.x, chest.y);
-                        protectButton.SetText(isLocked ? "Desbloquear cofre" : "Proteger cofre");
-
-                        string action = isLocked ? "protegido" : "desprotegido";
-                        Main.NewText($"Cofre en ({chest.x}, {chest.y}) {action}.", Color.LightBlue);
+                        if (isLocked)
+                        {
+                            // Mostrar la contraseña de desbloqueo al hacer clic en "Desbloquear cofre"
+                            currentMode = UIMode.Unlock;
+                            protectButton.SetText("Desbloquear cofre");
+                        }
+                        else
+                        {
+                            // Mostrar entradas de contraseña protegidas
+                            currentMode = UIMode.Protect;
+                            protectButton.SetText("Proteger cofre");
+                        }
                     }
                 }
                 else
                 {
                     Main.NewText("No hay ningún cofre abierto.", Color.Red);
+                    currentMode = UIMode.None;
                 }
+
+                UpdateUIElements(); // Actualizar la UI del usuario dependiendo del modo
             };
 
+            // Etiqueta "Contraseña:" (Protect mode)
+            passwordLabel = new UITextPanel<string>("Contraseña:", 0.8f, false)
+            {
+                Width = { Pixels = 80 },
+                Height = { Pixels = 30 },
+                Left = { Pixels = 73 },
+                Top = { Pixels = 472 }
+            };
+
+            // Input de contraseña (Protect mode)
+            passwordInput = new UIInputTextField("", "Escribe la contraseña")
+            {
+                Width = { Pixels = 172 },
+                Height = { Pixels = 35 },
+                Left = { Pixels = 180 },
+                Top = { Pixels = 472 }
+            };
+
+            // Etiqueta "Confirmar:" (Protect mode)
+            confirmPasswordLabel = new UITextPanel<string>("Confirmar:", 0.8f, false)
+            {
+                Width = { Pixels = 97 },
+                Height = { Pixels = 30 },
+                Left = { Pixels = 73 },
+                Top = { Pixels = 516 }
+            };
+
+            // Input de confirmar contraseña (Protect mode)
+            confirmPasswordInput = new UIInputTextField("", "Confirma la contraseña")
+            {
+                Width = { Pixels = 172 },
+                Height = { Pixels = 35 },
+                Left = { Pixels = 180 },
+                Top = { Pixels = 516 }
+            };
+
+            // Etiqueta "Ingresar contraseña" (Unlock mode)
+            unlockPasswordLabel = new UITextPanel<string>("Ingresar contraseña", 0.8f, false)
+            {
+                Width = { Pixels = 120 },
+                Height = { Pixels = 30 },
+                Left = { Pixels = 73 },
+                Top = { Pixels = 472 }
+            };
+
+            // Input para desbloquear (Unlock mode)
+            unlockPasswordInput = new UIInputTextField("", "Ingresa la contraseña")
+            {
+                Width = { Pixels = 158 },
+                Height = { Pixels = 35 },
+                Left = { Pixels = 225 },
+                Top = { Pixels = 472 }
+            };
+
+            // Botón de Aceptar
+            acceptButton = new UITextPanel<string>("Aceptar", 0.8f, false)
+            {
+                Width = { Pixels = 80 },
+                Height = { Pixels = 30 },
+                Left = { Pixels = 415 },
+                Top = { Pixels = 470 }
+            };
+
+            acceptButton.OnMouseOver += (evt, element) =>
+                acceptButton.BorderColor = Color.Yellow;
+
+            acceptButton.OnMouseOut += (evt, element) =>
+                acceptButton.BorderColor = Color.Black;
+
+            acceptButton.OnLeftClick += (evt, element) =>
+            {
+                Player player = Main.player[Main.myPlayer];
+                int chestIndex = player.chest;
+
+                if (chestIndex != -1)
+                {
+                    Chest chest = Main.chest[chestIndex];
+                    if (chest != null)
+                    {
+                        if (currentMode == UIMode.Protect)
+                        {
+                            // Protect mode: Verificar contraseña y confirmar coincidencia de contraseña
+                            if (passwordInput.Text == confirmPasswordInput.Text)
+                            {
+                                if (!string.IsNullOrEmpty(passwordInput.Text))
+                                {
+                                    ChestProtectionSystem.ToggleChestProtection(chest.x, chest.y, passwordInput.Text);
+                                    bool isLocked = ChestProtectionSystem.IsChestProtected(chest.x, chest.y);
+                                    protectButton.SetText(isLocked ? "Desbloquear cofre" : "Proteger cofre");
+                                    string action = isLocked ? "protegido" : "desprotegido";
+                                    // Main.NewText($"Cofre en ({chest.x}, {chest.y}) {action}.", Color.LightBlue);
+                                    // Main.NewText($"Contraseña establecida: {passwordInput.Text}", Color.Yellow);
+                                    passwordInput.Text = "";
+                                    confirmPasswordInput.Text = "";
+                                    currentMode = UIMode.None;
+                                }
+                                else
+                                {
+                                    // Main.NewText("La contraseña no puede estar vacía.", Color.Red);
+                                }
+                            }
+                            else
+                            {
+                                // Main.NewText("Las contraseñas no coinciden.", Color.Red);
+                            }
+                        }
+                        else if (currentMode == UIMode.Unlock)
+                        {
+                            // Unlock mode: Verificar que la contraseña introducida coincide con la almacenada
+                            string storedPassword = ChestProtectionSystem.GetChestPassword(chest.x, chest.y);
+                            if (unlockPasswordInput.Text == storedPassword)
+                            {
+                                ChestProtectionSystem.ToggleChestProtection(chest.x, chest.y, "");
+                                protectButton.SetText("Proteger cofre");
+                                // Main.NewText($"Cofre en ({chest.x}, {chest.y}) desprotegido.", Color.LightBlue);
+                                unlockPasswordInput.Text = "";
+                                currentMode = UIMode.None;
+                            }
+                            else
+                            {
+                                // Main.NewText("Contraseña incorrecta.", Color.Red);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // Main.NewText("No hay ningún cofre abierto.", Color.Red);
+                    currentMode = UIMode.None;
+                }
+
+                UpdateUIElements(); // Actualizar la UI del usuario dependiendo del modo
+            };
+
+            // Agregar los elementos a la UI
             Append(protectButton);
+            UpdateUIElements(); // Configurar visibilidad inicial
+        }
+
+        private void UpdateUIElements()
+        {
+            // Eliminar todos los elementos relacionados con la entrada de texto
+            passwordLabel.Remove();
+            passwordInput.Remove();
+            confirmPasswordLabel.Remove();
+            confirmPasswordInput.Remove();
+            unlockPasswordLabel.Remove();
+            unlockPasswordInput.Remove();
+            acceptButton.Remove();
+
+            // Añadir elementos en función del modo actual
+            if (currentMode == UIMode.Protect)
+            {
+                if (!Children.Contains(passwordLabel)) Append(passwordLabel);
+                if (!Children.Contains(passwordInput)) Append(passwordInput);
+                if (!Children.Contains(confirmPasswordLabel)) Append(confirmPasswordLabel);
+                if (!Children.Contains(confirmPasswordInput)) Append(confirmPasswordInput);
+                if (!Children.Contains(acceptButton)) Append(acceptButton);
+            }
+            else if (currentMode == UIMode.Unlock)
+            {
+                if (!Children.Contains(unlockPasswordLabel)) Append(unlockPasswordLabel);
+                if (!Children.Contains(unlockPasswordInput)) Append(unlockPasswordInput);
+                if (!Children.Contains(acceptButton)) Append(acceptButton);
+            }
+        }
+
+        public override void Update(GameTime gameTime)
+        {
+            base.Update(gameTime);
+
+            // Detectar cambios en las entradas de texto
+            if (currentMode == UIMode.Protect)
+            {
+                if (passwordInput.Text != lastPasswordInput)
+                {
+                    lastPasswordInput = passwordInput.Text;
+                }
+                if (confirmPasswordInput.Text != lastConfirmPasswordInput)
+                {
+                    lastConfirmPasswordInput = confirmPasswordInput.Text;
+                }
+            }
+            else if (currentMode == UIMode.Unlock)
+            {
+                if (unlockPasswordInput.Text != lastUnlockPasswordInput)
+                {
+                    lastUnlockPasswordInput = unlockPasswordInput.Text;
+                }
+            }
+
+            // Comprueba si el cofre ha cambiado o el inventario está cerrado
+            Player player = Main.player[Main.myPlayer];
+            if (player.chest != lastChestIndex)
+            {
+                lastChestIndex = player.chest;
+                if (player.chest != -1)
+                {
+                    Chest chest = Main.chest[player.chest];
+                    if (chest != null)
+                    {
+                        bool isLocked = ChestProtectionSystem.IsChestProtected(chest.x, chest.y);
+                        protectButton.SetText(isLocked ? "Desbloquear cofre" : "Proteger cofre");
+                        currentMode = UIMode.None; // Siempre se restablece a None al cambiar de cofre
+                    }
+                }
+                else
+                {
+                    currentMode = UIMode.None;
+                }
+                UpdateUIElements();
+            }
         }
 
         public override void OnActivate()
         {
             Player player = Main.player[Main.myPlayer];
+            lastChestIndex = player.chest;
             if (player.chest != -1)
             {
                 Chest chest = Main.chest[player.chest];
@@ -62,7 +299,14 @@ namespace SafeChests.UI
                 {
                     bool isLocked = ChestProtectionSystem.IsChestProtected(chest.x, chest.y);
                     protectButton.SetText(isLocked ? "Desbloquear cofre" : "Proteger cofre");
+                    currentMode = UIMode.None; // Siempre se restablece a None al cambiar de cofre
+                    UpdateUIElements();
                 }
+            }
+            else
+            {
+                currentMode = UIMode.None;
+                UpdateUIElements();
             }
         }
     }
