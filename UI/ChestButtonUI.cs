@@ -8,7 +8,6 @@ namespace SafeChests.UI
     internal class ChestButtonUI : UIState
     {
         private UITextPanel<string> protectButton;
-        private bool isLocked = false;
 
         public override void OnInitialize()
         {
@@ -36,8 +35,8 @@ namespace SafeChests.UI
                     Chest chest = Main.chest[chestIndex];
                     if (chest != null)
                     {
-                        isLocked = !isLocked;
                         ChestProtectionSystem.ToggleChestProtection(chest.x, chest.y);
+                        bool isLocked = ChestProtectionSystem.IsChestProtected(chest.x, chest.y);
                         protectButton.SetText(isLocked ? "Desbloquear cofre" : "Proteger cofre");
 
                         string action = isLocked ? "protegido" : "desprotegido";
@@ -51,6 +50,20 @@ namespace SafeChests.UI
             };
 
             Append(protectButton);
+        }
+
+        public override void OnActivate()
+        {
+            Player player = Main.player[Main.myPlayer];
+            if (player.chest != -1)
+            {
+                Chest chest = Main.chest[player.chest];
+                if (chest != null)
+                {
+                    bool isLocked = ChestProtectionSystem.IsChestProtected(chest.x, chest.y);
+                    protectButton.SetText(isLocked ? "Desbloquear cofre" : "Proteger cofre");
+                }
+            }
         }
     }
 }

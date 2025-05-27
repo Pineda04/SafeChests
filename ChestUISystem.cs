@@ -2,7 +2,11 @@ using Microsoft.Xna.Framework;
 using System.Collections.Generic;
 using Terraria;
 using Terraria.ModLoader;
+using Terraria.ModLoader.IO;
 using Terraria.UI;
+using Terraria.GameContent.UI.Elements;
+using Terraria.ID;
+using Terraria.DataStructures;
 using SafeChests.UI;
 
 namespace SafeChests
@@ -17,6 +21,7 @@ namespace SafeChests
             _chestInterface = new UserInterface();
             _chestButtonUI = new ChestButtonUI();
             _chestInterface.SetState(_chestButtonUI);
+            Main.NewText("SafeChests: UI inicializada", Color.Green);
         }
 
         public override void UpdateUI(GameTime gameTime)
@@ -39,6 +44,15 @@ namespace SafeChests
                         if (Main.playerInventory && Main.player[Main.myPlayer].chest != -1)
                         {
                             _chestInterface.Draw(Main.spriteBatch, new GameTime());
+                            // Ocultar ítems si el cofre está protegido
+                            if (ChestProtectionSystem.IsChestProtected(Main.chest[Main.player[Main.myPlayer].chest].x, Main.chest[Main.player[Main.myPlayer].chest].y))
+                            {
+                                Main.instance.invBottom = 1000; // Oculta los ítems
+                            }
+                            else
+                            {
+                                Main.instance.invBottom = 258; // Posición normal de la UI
+                            }
                         }
                         return true;
                     },

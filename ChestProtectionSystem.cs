@@ -1,7 +1,9 @@
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;
+using Terraria;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
+using Terraria.DataStructures;
 
 namespace SafeChests
 {
@@ -20,7 +22,6 @@ namespace SafeChests
 
         public static bool IsChestProtected(int x, int y) => ProtectedChests.Contains(new Point(x, y));
 
-        // Guardar
         public override void SaveWorldData(TagCompound tag)
         {
             List<int> data = new();
@@ -32,7 +33,6 @@ namespace SafeChests
             tag["ProtectedChests"] = data;
         }
 
-        // Cargar
         public override void LoadWorldData(TagCompound tag)
         {
             ProtectedChests.Clear();

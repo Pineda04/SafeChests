@@ -1,7 +1,5 @@
 using Microsoft.Xna.Framework;
 using Terraria;
-using Terraria.Audio;
-using Terraria.ID;
 using Terraria.ModLoader;
 
 namespace SafeChests
@@ -15,13 +13,8 @@ namespace SafeChests
                 Chest chest = Main.chest[Player.chest];
                 if (chest != null && ChestProtectionSystem.IsChestProtected(chest.x, chest.y))
                 {
-                    Main.NewText("Este cofre está protegido.", Color.Red);
-
-                    // Cerrar el cofre manualmente
-                    Main.playerInventory = false;
-                    Main.recBigList = false;
-                    Main.player[Main.myPlayer].chest = -1;
-                    SoundEngine.PlaySound(SoundID.MenuOpen);
+                    Main.NewText("Este cofre está protegido con SafeChests.", Color.Red);
+                    // No cerramos el cofre, permitimos que la UI permanezca abierta
                 }
             }
         }
