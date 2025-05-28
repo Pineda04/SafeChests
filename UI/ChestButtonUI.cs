@@ -1,6 +1,8 @@
 using Microsoft.Xna.Framework;
 using Terraria;
+using Terraria.ID;
 using Terraria.GameContent.UI.Elements;
+using Terraria.ModLoader;
 using Terraria.UI;
 using System.Linq;
 
@@ -25,7 +27,7 @@ namespace SafeChests.UI
 
         public override void OnInitialize()
         {
-            // Botón de proteger/desbloquear cofre
+            // Asegurarse de que el texto inicial no sea null
             protectButton = new UITextPanel<string>("Proteger cofre", 0.8f, false)
             {
                 Width = { Pixels = 120 },
@@ -51,23 +53,13 @@ namespace SafeChests.UI
                     if (chest != null)
                     {
                         bool isLocked = ChestProtectionSystem.IsChestProtected(chest.x, chest.y);
-                        if (isLocked)
-                        {
-                            // Mostrar la contraseña de desbloqueo al hacer clic en "Desbloquear cofre"
-                            currentMode = UIMode.Unlock;
-                            protectButton.SetText("Desbloquear cofre");
-                        }
-                        else
-                        {
-                            // Mostrar entradas de contraseña protegidas
-                            currentMode = UIMode.Protect;
-                            protectButton.SetText("Proteger cofre");
-                        }
+                        currentMode = isLocked ? UIMode.Unlock : UIMode.Protect;
+                        protectButton.SetText(isLocked ? "Desbloquear cofre" : "Proteger cofre");
                     }
                 }
                 else
                 {
-                    Main.NewText("No hay ningún cofre abierto.", Color.Red);
+                    ChestProtectionSystem.SendMessageToAll("No hay ningún cofre abierto.", Color.Red);
                     currentMode = UIMode.None;
                 }
 
@@ -160,52 +152,80 @@ namespace SafeChests.UI
                             {
                                 if (!string.IsNullOrEmpty(passwordInput.Text))
                                 {
-                                    ChestProtectionSystem.ToggleChestProtection(chest.x, chest.y, passwordInput.Text);
-                                    bool isLocked = ChestProtectionSystem.IsChestProtected(chest.x, chest.y);
-                                    protectButton.SetText(isLocked ? "Desbloquear cofre" : "Proteger cofre");
-                                    string action = isLocked ? "protegido" : "desprotegido";
-                                    // Main.NewText($"Cofre en ({chest.x}, {chest.y}) {action}.", Color.LightBlue);
-                                    // Main.NewText($"Contraseña establecida: {passwordInput.Text}", Color.Yellow);
+                                    if (Main.netMode == NetmodeID.MultiplayerClient)
+                                    {
+                                        // Enviar solicitud al servidor
+                                        ModPacket packet = ModContent.GetInstance<SafeChests>().GetPacket();
+                                        packet.Write((byte)0);
+                                        packet.Write(chest.x);
+                                        packet.Write(chest.y);
+                                        packet.Write(passwordInput.Text);
+                                        packet.Write(false); // No estaba protegido
+                                        packet.Send();
+                                        // Actualizar el texto
+                                        protectButton.SetText("Desbloquear cofre");
+                                    }
+                                    else
+                                    {
+                                        // Modo de un solo jugador o servidor
+                                        ChestProtectionSystem.ToggleChestProtection(chest.x, chest.y, passwordInput.Text);
+                                        protectButton.SetText("Desbloquear cofre");
+                                    }
                                     passwordInput.Text = "";
                                     confirmPasswordInput.Text = "";
                                     currentMode = UIMode.None;
                                 }
                                 else
                                 {
-                                    // Main.NewText("La contraseña no puede estar vacía.", Color.Red);
+                                    ChestProtectionSystem.SendMessageToAll("La contraseña no puede estar vacía.", Color.Red);
                                 }
                             }
                             else
                             {
-                                // Main.NewText("Las contraseñas no coinciden.", Color.Red);
+                                ChestProtectionSystem.SendMessageToAll("Las contraseñas no coinciden.", Color.Red);
                             }
                         }
                         else if (currentMode == UIMode.Unlock)
                         {
-                            // Unlock mode: Verificar que la contraseña introducida coincide con la almacenada
                             string storedPassword = ChestProtectionSystem.GetChestPassword(chest.x, chest.y);
                             if (unlockPasswordInput.Text == storedPassword)
                             {
-                                ChestProtectionSystem.ToggleChestProtection(chest.x, chest.y, "");
-                                protectButton.SetText("Proteger cofre");
-                                // Main.NewText($"Cofre en ({chest.x}, {chest.y}) desprotegido.", Color.LightBlue);
+                                if (Main.netMode == NetmodeID.MultiplayerClient)
+                                {
+                                    // Enviar solicitud al servidor
+                                    ModPacket packet = ModContent.GetInstance<SafeChests>().GetPacket();
+                                    packet.Write((byte)0);
+                                    packet.Write(chest.x);
+                                    packet.Write(chest.y);
+                                    packet.Write("");
+                                    packet.Write(true); // Estaba protegido
+                                    packet.Send();
+                                    // Actualizar el texto
+                                    protectButton.SetText("Proteger cofre");
+                                }
+                                else
+                                {
+                                    // Modo de un solo jugador o servidor
+                                    ChestProtectionSystem.ToggleChestProtection(chest.x, chest.y, "");
+                                    protectButton.SetText("Proteger cofre");
+                                }
                                 unlockPasswordInput.Text = "";
                                 currentMode = UIMode.None;
                             }
                             else
                             {
-                                // Main.NewText("Contraseña incorrecta.", Color.Red);
+                                ChestProtectionSystem.SendMessageToAll("Contraseña incorrecta.", Color.Red);
                             }
                         }
+                        UpdateUIElements();
                     }
                 }
                 else
                 {
-                    // Main.NewText("No hay ningún cofre abierto.", Color.Red);
+                    ChestProtectionSystem.SendMessageToAll("No hay ningún cofre abierto.", Color.Red);
                     currentMode = UIMode.None;
+                    UpdateUIElements(); // Actualizar la UI del usuario dependiendo del modo
                 }
-
-                UpdateUIElements(); // Actualizar la UI del usuario dependiendo del modo
             };
 
             // Agregar los elementos a la UI
@@ -308,6 +328,14 @@ namespace SafeChests.UI
                 currentMode = UIMode.None;
                 UpdateUIElements();
             }
+        }
+
+        // Actualizar el texto del botón
+        public void UpdateButtonText(string text)
+        {
+            protectButton?.SetText(text);
+            currentMode = UIMode.None;
+            UpdateUIElements();
         }
     }
 }
