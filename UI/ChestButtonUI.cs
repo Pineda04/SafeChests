@@ -55,7 +55,7 @@ namespace SafeChests.UI
                         bool isLocked = ChestProtectionSystem.IsChestProtected(chest.x, chest.y);
                         currentMode = isLocked ? UIMode.Unlock : UIMode.Protect;
                         protectButton.SetText(isLocked ? "Desbloquear cofre" : "Proteger cofre");
-                        protectButton.Top.Pixels = isLocked ? 258 : 428; // 528 para "Desbloquear", 428 para "Proteger"
+                        protectButton.Top.Pixels = isLocked ? 258 : 428; // 258 para "Desbloquear", 428 para "Proteger"
                     }
                 }
                 else
@@ -109,7 +109,7 @@ namespace SafeChests.UI
                 Width = { Pixels = 120 },
                 Height = { Pixels = 30 },
                 Left = { Pixels = 73 },
-                Top = { Pixels = 302 } // Modo de desbloqueo
+                Top = { Pixels = 302 } // Posición para "Desbloquear"
             };
 
             // Input para desbloquear (Unlock mode)
@@ -118,7 +118,7 @@ namespace SafeChests.UI
                 Width = { Pixels = 158 },
                 Height = { Pixels = 35 },
                 Left = { Pixels = 225 },
-                Top = { Pixels = 302 } // Modo de desbloqueo
+                Top = { Pixels = 302 } // Posición para "Desbloquear"
             };
 
             // Botón de Aceptar
@@ -165,14 +165,14 @@ namespace SafeChests.UI
                                         packet.Send();
                                         // Actualizar el texto y posición
                                         protectButton.SetText("Desbloquear cofre");
-                                        protectButton.Top.Pixels = 258; // Modo de desbloqueo
+                                        protectButton.Top.Pixels = 258; // Posición para "Desbloquear"
                                     }
                                     else
                                     {
                                         // Modo de un solo jugador o servidor
                                         ChestProtectionSystem.ToggleChestProtection(chest.x, chest.y, passwordInput.Text);
                                         protectButton.SetText("Desbloquear cofre");
-                                        protectButton.Top.Pixels = 258; // Modo de desbloqueo
+                                        protectButton.Top.Pixels = 258; // Posición para "Desbloquear"
                                     }
                                     passwordInput.Text = "";
                                     confirmPasswordInput.Text = "";
@@ -264,7 +264,7 @@ namespace SafeChests.UI
                 if (!Children.Contains(unlockPasswordLabel)) Append(unlockPasswordLabel);
                 if (!Children.Contains(unlockPasswordInput)) Append(unlockPasswordInput);
                 if (!Children.Contains(acceptButton)) Append(acceptButton);
-                acceptButton.Top.Pixels = 300; // Modo de desbloqueo
+                acceptButton.Top.Pixels = 300; // Posición para modo Unlock
             }
         }
 
@@ -296,6 +296,14 @@ namespace SafeChests.UI
             Player player = Main.player[Main.myPlayer];
             if (player.chest != lastChestIndex)
             {
+                // Limpiar los campos de texto cuando se cambia de cofre o se cierra el cofre
+                passwordInput.Text = "";
+                confirmPasswordInput.Text = "";
+                unlockPasswordInput.Text = "";
+                lastPasswordInput = "";
+                lastConfirmPasswordInput = "";
+                lastUnlockPasswordInput = "";
+
                 lastChestIndex = player.chest;
                 if (player.chest != -1)
                 {
@@ -334,6 +342,13 @@ namespace SafeChests.UI
             }
             else
             {
+                // Limpiar los campos de texto cuando no hay cofre abierto
+                passwordInput.Text = "";
+                confirmPasswordInput.Text = "";
+                unlockPasswordInput.Text = "";
+                lastPasswordInput = "";
+                lastConfirmPasswordInput = "";
+                lastUnlockPasswordInput = "";
                 currentMode = UIMode.None;
                 UpdateUIElements();
             }
