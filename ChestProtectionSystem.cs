@@ -32,11 +32,11 @@ namespace SafeChests
             if (Main.netMode != NetmodeID.SinglePlayer)
             {
                 SendChestUpdate(x, y, password, wasProtected);
-                SendMessageToAll($"Cofre en ({x}, {y}) {action}.", Color.LightBlue, whoAmI);
+                // SendMessageToAll($"Cofre en ({x}, {y}) {action}.", Color.LightBlue, whoAmI);
             }
             else
             {
-                Main.NewText($"Cofre en ({x}, {y}) {action}.", Color.LightBlue);
+                // Main.NewText($"Cofre en ({x}, {y}) {action}.", Color.LightBlue);
             }
         }
 
