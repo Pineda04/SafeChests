@@ -1,1 +1,9 @@
-Modify this file with a description of your mod.
+[c/FFFF00:Español]
+SafeChest permite proteger tus cofres en Terraria con contraseñas. 
+Agrega una interfaz sencilla para bloquear y desbloquear cofres, asegurando que solo tú puedas acceder a ellos. 
+Ideal para partidas multijugador donde quieres mantener tus objetos seguros.
+
+[c/FFFF00:English]
+SafeChest allows you to protect your chests in Terraria with passwords. 
+It adds a simple interface for locking and unlocking chests, ensuring that only you can access them. 
+Ideal for multiplayer games where you want to keep your items safe.

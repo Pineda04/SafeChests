@@ -1,1 +1,41 @@
-This description will show up on the steam page, check out https://steamcommunity.com/comment/Guide/formattinghelp.
+[h1][b][i]SafeChest - Protege tus Cofres / Secure Your Chests[/i][/b][/h1]
+
+[h2][b][u]Español[/u][/b][/h2]
+[b]SafeChest[/b] es un mod para Terraria que te permite proteger tus cofres con [b]contraseñas[/b], 
+asegurando que solo tú o quienes conozcan la contraseña puedan abrirlos. 
+Perfecto para partidas [b]multijugador[/b], incluye una interfaz intuitiva para [b]bloquear y desbloquear[/b] cofres.
+
+[h3][b]Características[/b][/h3]
+[list]
+[*]Protege cualquier cofre con una contraseña única.
+[*]Interfaz de usuario simple para bloquear y desbloquear.
+[*]Soporte para multijugador: ¡mantén tus objetos seguros en servidores!
+[/list]
+
+[h3][b]Cómo Usar[/b][/h3]
+[list]
+[*]Abre un cofre y haz clic en “Proteger cofre” para establecer una contraseña.
+[*]Para desbloquear, ingresa la contraseña correcta en la interfaz.
+[/list]
+
+[h2][b][u]English[/u][/b][/h2]
+[b]SafeChest[/b] is a Terraria mod that lets you protect your chests with [b]passwords[/b], 
+ensuring only you or those with the correct password can access them. 
+Ideal for [b]multiplayer[/b] games, it features an intuitive UI for [b]locking and unlocking[/b] chests.
+
+[h3][b]Features[/b][/h3]
+[list]
+[*]Secure any chest with a unique password.
+[*]Simple user interface for locking and unlocking.
+[*]Multiplayer support: keep your items safe on servers!
+[/list]
+
+[h3][b]How to Use[/b][/h3]
+[list]
+[*]Open a chest and click “Protect Chest” to set a password.
+[*]To unlock, enter the correct password in the interface.
+[/list]
+
+[h2][b]Soporte y Contribuciones / Support and Contributions[/b][/h2]
+[b]Español:[/b] ¿Preguntas o errores? Reporta en [url=https://github.com/Pineda04/SafeChests]GitHub[/url]. ¡Ayúdame dando una ⭐ en [url=https://github.com/Pineda04/SafeChests]GitHub[/url]!
+[b]English:[/b] Questions or bugs? Report on [url=https://github.com/Pineda04/SafeChests]GitHub[/url]. Help me by giving a ⭐ on [url=https://github.com/Pineda04/SafeChests]GitHub[/url]!
