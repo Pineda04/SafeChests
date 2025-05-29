@@ -33,7 +33,7 @@ namespace SafeChests.UI
                 Width = { Pixels = 120 },
                 Height = { Pixels = 30 },
                 Left = { Pixels = 73 },
-                Top = { Pixels = 428 }
+                Top = { Pixels = 428 } // Posición original para "Proteger cofre"
             };
 
             protectButton.OnMouseOver += (evt, element) =>
@@ -55,6 +55,7 @@ namespace SafeChests.UI
                         bool isLocked = ChestProtectionSystem.IsChestProtected(chest.x, chest.y);
                         currentMode = isLocked ? UIMode.Unlock : UIMode.Protect;
                         protectButton.SetText(isLocked ? "Desbloquear cofre" : "Proteger cofre");
+                        protectButton.Top.Pixels = isLocked ? 258 : 428; // 528 para "Desbloquear", 428 para "Proteger"
                     }
                 }
                 else
@@ -72,7 +73,7 @@ namespace SafeChests.UI
                 Width = { Pixels = 80 },
                 Height = { Pixels = 30 },
                 Left = { Pixels = 73 },
-                Top = { Pixels = 472 }
+                Top = { Pixels = 472 } // Posición original
             };
 
             // Input de contraseña (Protect mode)
@@ -81,7 +82,7 @@ namespace SafeChests.UI
                 Width = { Pixels = 172 },
                 Height = { Pixels = 35 },
                 Left = { Pixels = 180 },
-                Top = { Pixels = 472 }
+                Top = { Pixels = 472 } // Posición original
             };
 
             // Etiqueta "Confirmar:" (Protect mode)
@@ -90,7 +91,7 @@ namespace SafeChests.UI
                 Width = { Pixels = 97 },
                 Height = { Pixels = 30 },
                 Left = { Pixels = 73 },
-                Top = { Pixels = 516 }
+                Top = { Pixels = 516 } // Posición original
             };
 
             // Input de confirmar contraseña (Protect mode)
@@ -99,7 +100,7 @@ namespace SafeChests.UI
                 Width = { Pixels = 172 },
                 Height = { Pixels = 35 },
                 Left = { Pixels = 180 },
-                Top = { Pixels = 516 }
+                Top = { Pixels = 516 } // Posición original
             };
 
             // Etiqueta "Ingresar contraseña" (Unlock mode)
@@ -108,7 +109,7 @@ namespace SafeChests.UI
                 Width = { Pixels = 120 },
                 Height = { Pixels = 30 },
                 Left = { Pixels = 73 },
-                Top = { Pixels = 472 }
+                Top = { Pixels = 302 } // Modo de desbloqueo
             };
 
             // Input para desbloquear (Unlock mode)
@@ -117,7 +118,7 @@ namespace SafeChests.UI
                 Width = { Pixels = 158 },
                 Height = { Pixels = 35 },
                 Left = { Pixels = 225 },
-                Top = { Pixels = 472 }
+                Top = { Pixels = 302 } // Modo de desbloqueo
             };
 
             // Botón de Aceptar
@@ -126,7 +127,7 @@ namespace SafeChests.UI
                 Width = { Pixels = 80 },
                 Height = { Pixels = 30 },
                 Left = { Pixels = 415 },
-                Top = { Pixels = 470 }
+                Top = { Pixels = 470 } // Posición inicial (se ajusta dinámicamente en UpdateUIElements)
             };
 
             acceptButton.OnMouseOver += (evt, element) =>
@@ -162,14 +163,16 @@ namespace SafeChests.UI
                                         packet.Write(passwordInput.Text);
                                         packet.Write(false); // No estaba protegido
                                         packet.Send();
-                                        // Actualizar el texto
+                                        // Actualizar el texto y posición
                                         protectButton.SetText("Desbloquear cofre");
+                                        protectButton.Top.Pixels = 258; // Modo de desbloqueo
                                     }
                                     else
                                     {
                                         // Modo de un solo jugador o servidor
                                         ChestProtectionSystem.ToggleChestProtection(chest.x, chest.y, passwordInput.Text);
                                         protectButton.SetText("Desbloquear cofre");
+                                        protectButton.Top.Pixels = 258; // Modo de desbloqueo
                                     }
                                     passwordInput.Text = "";
                                     confirmPasswordInput.Text = "";
@@ -200,14 +203,16 @@ namespace SafeChests.UI
                                     packet.Write("");
                                     packet.Write(true); // Estaba protegido
                                     packet.Send();
-                                    // Actualizar el texto
+                                    // Actualizar el texto y posición
                                     protectButton.SetText("Proteger cofre");
+                                    protectButton.Top.Pixels = 428; // Posición original
                                 }
                                 else
                                 {
                                     // Modo de un solo jugador o servidor
                                     ChestProtectionSystem.ToggleChestProtection(chest.x, chest.y, "");
                                     protectButton.SetText("Proteger cofre");
+                                    protectButton.Top.Pixels = 428; // Posición original
                                 }
                                 unlockPasswordInput.Text = "";
                                 currentMode = UIMode.None;
@@ -244,7 +249,7 @@ namespace SafeChests.UI
             unlockPasswordInput.Remove();
             acceptButton.Remove();
 
-            // Añadir elementos en función del modo actual
+            // Añadir elementos en función del modo actual y ajustar posición de acceptButton
             if (currentMode == UIMode.Protect)
             {
                 if (!Children.Contains(passwordLabel)) Append(passwordLabel);
@@ -252,12 +257,14 @@ namespace SafeChests.UI
                 if (!Children.Contains(confirmPasswordLabel)) Append(confirmPasswordLabel);
                 if (!Children.Contains(confirmPasswordInput)) Append(confirmPasswordInput);
                 if (!Children.Contains(acceptButton)) Append(acceptButton);
+                acceptButton.Top.Pixels = 470; // Posición original para modo Protect
             }
             else if (currentMode == UIMode.Unlock)
             {
                 if (!Children.Contains(unlockPasswordLabel)) Append(unlockPasswordLabel);
                 if (!Children.Contains(unlockPasswordInput)) Append(unlockPasswordInput);
                 if (!Children.Contains(acceptButton)) Append(acceptButton);
+                acceptButton.Top.Pixels = 300; // Modo de desbloqueo
             }
         }
 
@@ -297,6 +304,7 @@ namespace SafeChests.UI
                     {
                         bool isLocked = ChestProtectionSystem.IsChestProtected(chest.x, chest.y);
                         protectButton.SetText(isLocked ? "Desbloquear cofre" : "Proteger cofre");
+                        protectButton.Top.Pixels = isLocked ? 258 : 428; // 258 para "Desbloquear", 428 para "Proteger"
                         currentMode = UIMode.None; // Siempre se restablece a None al cambiar de cofre
                     }
                 }
@@ -319,6 +327,7 @@ namespace SafeChests.UI
                 {
                     bool isLocked = ChestProtectionSystem.IsChestProtected(chest.x, chest.y);
                     protectButton.SetText(isLocked ? "Desbloquear cofre" : "Proteger cofre");
+                    protectButton.Top.Pixels = isLocked ? 258 : 428; // 258 para "Desbloquear", 428 para "Proteger"
                     currentMode = UIMode.None; // Siempre se restablece a None al cambiar de cofre
                     UpdateUIElements();
                 }
@@ -334,6 +343,7 @@ namespace SafeChests.UI
         public void UpdateButtonText(string text)
         {
             protectButton?.SetText(text);
+            protectButton.Top.Pixels = text == "Desbloquear cofre" ? 258 : 428; // Ajustar posición según el texto
             currentMode = UIMode.None;
             UpdateUIElements();
         }
