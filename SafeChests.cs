@@ -3,11 +3,23 @@ using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
+using Terraria.Localization;
 
 namespace SafeChests
 {
     public class SafeChests : Mod
     {
+        public override void PostSetupContent()
+        {
+            // Detectar el idioma actual para debug
+            if (Main.netMode != NetmodeID.Server)
+            {
+                string currentLanguage = Language.ActiveCulture.Name;
+                Logger.Info($"Idioma detectado: {currentLanguage}");
+                Logger.Info($"Texto de prueba: {Language.GetTextValue("Mods.SafeChests.UI.ProtectChest")}");
+            }
+        }
+
         public override void HandlePacket(BinaryReader reader, int whoAmI)
         {
             byte packetType = reader.ReadByte();
@@ -20,12 +32,10 @@ namespace SafeChests
 
                 if (Main.netMode == NetmodeID.Server)
                 {
-                    // El servidor valida y actualiza
                     ChestProtectionSystem.ToggleChestProtection(x, y, password, whoAmI);
                 }
                 else
                 {
-                    // Los clientes actualizan su estado local
                     Point chestPos = new(x, y);
                     if (wasProtected)
                     {
@@ -36,7 +46,6 @@ namespace SafeChests
                         ChestProtectionSystem.ProtectedChests.Add(chestPos, password);
                     }
 
-                    // Actualizar la UI si el cofre afectado está abierto
                     if (Main.netMode == NetmodeID.MultiplayerClient)
                     {
                         Player player = Main.player[Main.myPlayer];
@@ -45,7 +54,6 @@ namespace SafeChests
                             Chest chest = Main.chest[player.chest];
                             if (chest != null && chest.x == x && chest.y == y)
                             {
-                                // Forzar actualización de la UI
                                 var chestUISystem = ModContent.GetInstance<ChestUISystem>();
                                 if (chestUISystem != null)
                                 {

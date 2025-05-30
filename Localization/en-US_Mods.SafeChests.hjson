@@ -1,1 +1,24 @@
+Mods: {
+	SafeChests: {
+		UI: {
+			ProtectChest: Protect Chest
+			UnlockChest: Unlock Chest
+			Password: Password:
+			Confirm: Confirm:
+			EnterPassword: Enter Password
+			Accept: Accept
+			PasswordPlaceholder: Enter password
+			ConfirmPlaceholder: Confirm password
+			UnlockPlaceholder: Enter password
+		}
 
+		Messages: {
+			OnlyWorldChests: Only world chests can be protected.
+			NoChestOpen: No chest is open.
+			EmptyPassword: Password cannot be empty.
+			PasswordMismatch: Passwords do not match.
+			IncorrectPassword: Incorrect password.
+			UIInitialized: SafeChests: UI initialized
+		}
+	}
+}

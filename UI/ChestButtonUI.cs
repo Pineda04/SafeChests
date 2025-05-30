@@ -4,6 +4,7 @@ using Terraria.ID;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader;
 using Terraria.UI;
+using Terraria.Localization;
 using System.Linq;
 
 namespace SafeChests.UI
@@ -12,47 +13,181 @@ namespace SafeChests.UI
     {
         private enum UIMode { None, Protect, Unlock }
         private UITextPanel<string> protectButton;
-        private UITextPanel<string> passwordLabel; // Etiqueta para Contraseña (Protect mode)
-        private UIInputTextField passwordInput; // Input de contraseña (Protect mode)
-        private UITextPanel<string> confirmPasswordLabel; // Etiqueta para Confirmar Contraseña (Protect mode)
-        private UIInputTextField confirmPasswordInput; // Input de confirmar contraseña (Protect mode)
-        private UITextPanel<string> unlockPasswordLabel; // Etiqueta para Ingresar contraseña (Unlock mode)
-        private UIInputTextField unlockPasswordInput; // Input para desbloquear (Unlock mode)
-        private UITextPanel<string> acceptButton; // Botón de Aceptar (used in both modes)
-        private string lastPasswordInput = ""; // Para rastrear cambios en la contraseña (Protect mode)
-        private string lastConfirmPasswordInput = ""; // Para rastrear cambios en confirmar contraseña (Protect mode)
-        private string lastUnlockPasswordInput = ""; // Para rastrear cambios en la contraseña de desbloqueo (Unlock mode)
-        private UIMode currentMode = UIMode.None; // Modo actual de la UI
-        private int lastChestIndex = -1; // Seguimiento del último cofre abierto para detectar cambios
+        private UITextPanel<string> passwordLabel;
+        private UIInputTextField passwordInput;
+        private UITextPanel<string> confirmPasswordLabel;
+        private UIInputTextField confirmPasswordInput;
+        private UITextPanel<string> unlockPasswordLabel;
+        private UIInputTextField unlockPasswordInput;
+        private UITextPanel<string> acceptButton;
+        private string lastPasswordInput = "";
+        private string lastConfirmPasswordInput = "";
+        private string lastUnlockPasswordInput = "";
+        private UIMode currentMode = UIMode.None;
+        private int lastChestIndex = -1;
 
-        // Método para verificar si el contenedor abierto es un cofre real
+        // Variables para detectar cambio de idioma
+        private string lastLanguage = "";
+        private bool needsLanguageUpdate = false;
+
+        // Método mejorado para obtener texto localizado
+        private string GetLocalizedText(string key)
+        {
+            try
+            {
+                string text = Language.GetTextValue(key);
+
+                // Si el texto devuelto es igual a la clave, usar fallbacks según el idioma
+                if (text == key)
+                {
+                    return GetFallbackText(key);
+                }
+
+                return text;
+            }
+            catch
+            {
+                return GetFallbackText(key);
+            }
+        }
+
+        private string GetFallbackText(string key)
+        {
+            // Detectar si el idioma actual es español usando el nombre de la cultura
+            string cultureName = Language.ActiveCulture.Name;
+            bool isSpanish = cultureName.StartsWith("es") || cultureName.Contains("Spanish");
+
+            return key switch
+            {
+                "Mods.SafeChests.UI.ProtectChest" => isSpanish ? "Proteger cofre" : "Protect Chest",
+                "Mods.SafeChests.UI.UnlockChest" => isSpanish ? "Desbloquear cofre" : "Unlock Chest",
+                "Mods.SafeChests.UI.Password" => isSpanish ? "Contraseña:" : "Password:",
+                "Mods.SafeChests.UI.Confirm" => isSpanish ? "Confirmar:" : "Confirm:",
+                "Mods.SafeChests.UI.EnterPassword" => isSpanish ? "Ingresar contraseña" : "Enter Password",
+                "Mods.SafeChests.UI.Accept" => isSpanish ? "Aceptar" : "Accept",
+                "Mods.SafeChests.UI.PasswordPlaceholder" => isSpanish ? "Escribe la contraseña" : "Enter password",
+                "Mods.SafeChests.UI.ConfirmPlaceholder" => isSpanish ? "Confirma la contraseña" : "Confirm password",
+                "Mods.SafeChests.UI.UnlockPlaceholder" => isSpanish ? "Ingresa la contraseña" : "Enter password",
+                "Mods.SafeChests.Messages.OnlyWorldChests" => isSpanish ? "Solo se pueden proteger cofres del mundo." : "Only world chests can be protected.",
+                "Mods.SafeChests.Messages.NoChestOpen" => isSpanish ? "No hay ningún cofre abierto." : "No chest is open.",
+                "Mods.SafeChests.Messages.EmptyPassword" => isSpanish ? "La contraseña no puede estar vacía." : "Password cannot be empty.",
+                "Mods.SafeChests.Messages.PasswordMismatch" => isSpanish ? "Las contraseñas no coinciden." : "Passwords do not match.",
+                "Mods.SafeChests.Messages.IncorrectPassword" => isSpanish ? "Contraseña incorrecta." : "Incorrect password.",
+                "Mods.SafeChests.Messages.UIInitialized" => isSpanish ? "SafeChests: UI inicializada" : "SafeChests: UI initialized",
+                _ => key
+            };
+        }
+
         private bool IsRealChest()
         {
             Player player = Main.player[Main.myPlayer];
-            
-            // Verificar si hay un cofre abierto
+
             if (player.chest == -1) return false;
-            
-            // Verificar si no es hucha, caja fuerte, cofre del vacío, cofre de equipo, etc.
             if (player.chest == -2) return false; // Hucha
             if (player.chest == -3) return false; // Caja fuerte
             if (player.chest == -4) return false; // Cofre del Vacío
             if (player.chest == -5) return false; // Cofre de Equipo
-            
-            // Si el índice es positivo, es un cofre real en el mundo
+
             Chest chest = Main.chest[player.chest];
             return chest != null;
         }
 
+        // Método para recrear los inputs con los nuevos placeholders
+        private void RecreateInputs()
+        {
+            // Guardar el texto actual de los inputs
+            string currentPasswordText = passwordInput?.Text ?? "";
+            string currentConfirmPasswordText = confirmPasswordInput?.Text ?? "";
+            string currentUnlockPasswordText = unlockPasswordInput?.Text ?? "";
+
+            // Recrear passwordInput
+            if (passwordInput != null)
+            {
+                passwordInput.Remove();
+            }
+            passwordInput = new UIInputTextField("", GetLocalizedText("Mods.SafeChests.UI.PasswordPlaceholder"))
+            {
+                Width = { Pixels = 172 },
+                Height = { Pixels = 35 },
+                Left = { Pixels = 180 },
+                Top = { Pixels = 472 }
+            };
+            passwordInput.Text = currentPasswordText;
+
+            // Recrear confirmPasswordInput
+            if (confirmPasswordInput != null)
+            {
+                confirmPasswordInput.Remove();
+            }
+            confirmPasswordInput = new UIInputTextField("", GetLocalizedText("Mods.SafeChests.UI.ConfirmPlaceholder"))
+            {
+                Width = { Pixels = 172 },
+                Height = { Pixels = 35 },
+                Left = { Pixels = 180 },
+                Top = { Pixels = 516 }
+            };
+            confirmPasswordInput.Text = currentConfirmPasswordText;
+
+            // Recrear unlockPasswordInput
+            if (unlockPasswordInput != null)
+            {
+                unlockPasswordInput.Remove();
+            }
+            unlockPasswordInput = new UIInputTextField("", GetLocalizedText("Mods.SafeChests.UI.UnlockPlaceholder"))
+            {
+                Width = { Pixels = 158 },
+                Height = { Pixels = 35 },
+                Left = { Pixels = 225 },
+                Top = { Pixels = 302 }
+            };
+            unlockPasswordInput.Text = currentUnlockPasswordText;
+        }
+
+        // Método para actualizar todos los textos cuando cambia el idioma
+        private void UpdateAllTexts()
+        {
+            // Actualizar el botón principal
+            Player player = Main.player[Main.myPlayer];
+            if (player.chest != -1 && IsRealChest())
+            {
+                Chest chest = Main.chest[player.chest];
+                if (chest != null)
+                {
+                    bool isLocked = ChestProtectionSystem.IsChestProtected(chest.x, chest.y);
+                    string buttonText = isLocked ?
+                        GetLocalizedText("Mods.SafeChests.UI.UnlockChest") :
+                        GetLocalizedText("Mods.SafeChests.UI.ProtectChest");
+                    protectButton.SetText(buttonText);
+                }
+            }
+            else
+            {
+                protectButton.SetText(GetLocalizedText("Mods.SafeChests.UI.ProtectChest"));
+            }
+
+            // Actualizar labels
+            passwordLabel?.SetText(GetLocalizedText("Mods.SafeChests.UI.Password"));
+            confirmPasswordLabel?.SetText(GetLocalizedText("Mods.SafeChests.UI.Confirm"));
+            unlockPasswordLabel?.SetText(GetLocalizedText("Mods.SafeChests.UI.EnterPassword"));
+            acceptButton?.SetText(GetLocalizedText("Mods.SafeChests.UI.Accept"));
+
+            // Recrear los inputs con los nuevos placeholders
+            RecreateInputs();
+
+            // Actualizar los elementos de la UI
+            UpdateUIElements();
+        }
+
         public override void OnInitialize()
         {
-            // Asegurarse de que el texto inicial no sea null
-            protectButton = new UITextPanel<string>("Proteger cofre", 0.8f, false)
+            lastLanguage = Language.ActiveCulture.Name;
+
+            protectButton = new UITextPanel<string>(GetLocalizedText("Mods.SafeChests.UI.ProtectChest"), 0.8f, false)
             {
                 Width = { Pixels = 120 },
                 Height = { Pixels = 30 },
                 Left = { Pixels = 73 },
-                Top = { Pixels = 428 } // Posición original para "Proteger cofre"
+                Top = { Pixels = 428 }
             };
 
             protectButton.OnMouseOver += (evt, element) =>
@@ -73,85 +208,85 @@ namespace SafeChests.UI
                     {
                         bool isLocked = ChestProtectionSystem.IsChestProtected(chest.x, chest.y);
                         currentMode = isLocked ? UIMode.Unlock : UIMode.Protect;
-                        protectButton.SetText(isLocked ? "Desbloquear cofre" : "Proteger cofre");
-                        protectButton.Top.Pixels = isLocked ? 258 : 428; // 258 para "Desbloquear", 428 para "Proteger"
+                        string buttonText = isLocked ?
+                            GetLocalizedText("Mods.SafeChests.UI.UnlockChest") :
+                            GetLocalizedText("Mods.SafeChests.UI.ProtectChest");
+                        protectButton.SetText(buttonText);
+                        protectButton.Top.Pixels = isLocked ? 258 : 428;
                     }
                 }
                 else if (!IsRealChest())
                 {
-                    ChestProtectionSystem.SendMessageToAll("Solo se pueden proteger cofres del mundo.", Color.Red);
+                    ChestProtectionSystem.SendMessageToAll(
+                        GetLocalizedText("Mods.SafeChests.Messages.OnlyWorldChests"),
+                        Color.Red);
                     currentMode = UIMode.None;
                 }
                 else
                 {
-                    ChestProtectionSystem.SendMessageToAll("No hay ningún cofre abierto.", Color.Red);
+                    ChestProtectionSystem.SendMessageToAll(
+                        GetLocalizedText("Mods.SafeChests.Messages.NoChestOpen"),
+                        Color.Red);
                     currentMode = UIMode.None;
                 }
 
-                UpdateUIElements(); // Actualizar la UI del usuario dependiendo del modo
+                UpdateUIElements();
             };
 
-            // Etiqueta "Contraseña:" (Protect mode)
-            passwordLabel = new UITextPanel<string>("Contraseña:", 0.8f, false)
+            passwordLabel = new UITextPanel<string>(GetLocalizedText("Mods.SafeChests.UI.Password"), 0.8f, false)
             {
                 Width = { Pixels = 80 },
                 Height = { Pixels = 30 },
                 Left = { Pixels = 73 },
-                Top = { Pixels = 472 } // Posición original
+                Top = { Pixels = 472 }
             };
 
-            // Input de contraseña (Protect mode)
-            passwordInput = new UIInputTextField("", "Escribe la contraseña")
+            passwordInput = new UIInputTextField("", GetLocalizedText("Mods.SafeChests.UI.PasswordPlaceholder"))
             {
                 Width = { Pixels = 172 },
                 Height = { Pixels = 35 },
                 Left = { Pixels = 180 },
-                Top = { Pixels = 472 } // Posición original
+                Top = { Pixels = 472 }
             };
 
-            // Etiqueta "Confirmar:" (Protect mode)
-            confirmPasswordLabel = new UITextPanel<string>("Confirmar:", 0.8f, false)
+            confirmPasswordLabel = new UITextPanel<string>(GetLocalizedText("Mods.SafeChests.UI.Confirm"), 0.8f, false)
             {
                 Width = { Pixels = 97 },
                 Height = { Pixels = 30 },
                 Left = { Pixels = 73 },
-                Top = { Pixels = 516 } // Posición original
+                Top = { Pixels = 516 }
             };
 
-            // Input de confirmar contraseña (Protect mode)
-            confirmPasswordInput = new UIInputTextField("", "Confirma la contraseña")
+            confirmPasswordInput = new UIInputTextField("", GetLocalizedText("Mods.SafeChests.UI.ConfirmPlaceholder"))
             {
                 Width = { Pixels = 172 },
                 Height = { Pixels = 35 },
                 Left = { Pixels = 180 },
-                Top = { Pixels = 516 } // Posición original
+                Top = { Pixels = 516 }
             };
 
-            // Etiqueta "Ingresar contraseña" (Unlock mode)
-            unlockPasswordLabel = new UITextPanel<string>("Ingresar contraseña", 0.8f, false)
+            unlockPasswordLabel = new UITextPanel<string>(GetLocalizedText("Mods.SafeChests.UI.EnterPassword"), 0.8f, false)
             {
                 Width = { Pixels = 120 },
                 Height = { Pixels = 30 },
                 Left = { Pixels = 73 },
-                Top = { Pixels = 302 } // Posición para "Desbloquear"
+                Top = { Pixels = 302 }
             };
 
-            // Input para desbloquear (Unlock mode)
-            unlockPasswordInput = new UIInputTextField("", "Ingresa la contraseña")
+            unlockPasswordInput = new UIInputTextField("", GetLocalizedText("Mods.SafeChests.UI.UnlockPlaceholder"))
             {
                 Width = { Pixels = 158 },
                 Height = { Pixels = 35 },
                 Left = { Pixels = 225 },
-                Top = { Pixels = 302 } // Posición para "Desbloquear"
+                Top = { Pixels = 302 }
             };
 
-            // Botón de Aceptar
-            acceptButton = new UITextPanel<string>("Aceptar", 0.8f, false)
+            acceptButton = new UITextPanel<string>(GetLocalizedText("Mods.SafeChests.UI.Accept"), 0.8f, false)
             {
                 Width = { Pixels = 80 },
                 Height = { Pixels = 30 },
                 Left = { Pixels = 415 },
-                Top = { Pixels = 470 } // Posición inicial (se ajusta dinámicamente en UpdateUIElements)
+                Top = { Pixels = 470 }
             };
 
             acceptButton.OnMouseOver += (evt, element) =>
@@ -172,31 +307,27 @@ namespace SafeChests.UI
                     {
                         if (currentMode == UIMode.Protect)
                         {
-                            // Protect mode: Verificar contraseña y confirmar coincidencia de contraseña
                             if (passwordInput.Text == confirmPasswordInput.Text)
                             {
                                 if (!string.IsNullOrEmpty(passwordInput.Text))
                                 {
                                     if (Main.netMode == NetmodeID.MultiplayerClient)
                                     {
-                                        // Enviar solicitud al servidor
                                         ModPacket packet = ModContent.GetInstance<SafeChests>().GetPacket();
                                         packet.Write((byte)0);
                                         packet.Write(chest.x);
                                         packet.Write(chest.y);
                                         packet.Write(passwordInput.Text);
-                                        packet.Write(false); // No estaba protegido
+                                        packet.Write(false);
                                         packet.Send();
-                                        // Actualizar el texto y posición
-                                        protectButton.SetText("Desbloquear cofre");
-                                        protectButton.Top.Pixels = 258; // Posición para "Desbloquear"
+                                        protectButton.SetText(GetLocalizedText("Mods.SafeChests.UI.UnlockChest"));
+                                        protectButton.Top.Pixels = 258;
                                     }
                                     else
                                     {
-                                        // Modo de un solo jugador o servidor
                                         ChestProtectionSystem.ToggleChestProtection(chest.x, chest.y, passwordInput.Text);
-                                        protectButton.SetText("Desbloquear cofre");
-                                        protectButton.Top.Pixels = 258; // Posición para "Desbloquear"
+                                        protectButton.SetText(GetLocalizedText("Mods.SafeChests.UI.UnlockChest"));
+                                        protectButton.Top.Pixels = 258;
                                     }
                                     passwordInput.Text = "";
                                     confirmPasswordInput.Text = "";
@@ -204,12 +335,16 @@ namespace SafeChests.UI
                                 }
                                 else
                                 {
-                                    ChestProtectionSystem.SendMessageToAll("La contraseña no puede estar vacía.", Color.Red);
+                                    ChestProtectionSystem.SendMessageToAll(
+                                        GetLocalizedText("Mods.SafeChests.Messages.EmptyPassword"),
+                                        Color.Red);
                                 }
                             }
                             else
                             {
-                                ChestProtectionSystem.SendMessageToAll("Las contraseñas no coinciden.", Color.Red);
+                                ChestProtectionSystem.SendMessageToAll(
+                                    GetLocalizedText("Mods.SafeChests.Messages.PasswordMismatch"),
+                                    Color.Red);
                             }
                         }
                         else if (currentMode == UIMode.Unlock)
@@ -219,31 +354,30 @@ namespace SafeChests.UI
                             {
                                 if (Main.netMode == NetmodeID.MultiplayerClient)
                                 {
-                                    // Enviar solicitud al servidor
                                     ModPacket packet = ModContent.GetInstance<SafeChests>().GetPacket();
                                     packet.Write((byte)0);
                                     packet.Write(chest.x);
                                     packet.Write(chest.y);
                                     packet.Write("");
-                                    packet.Write(true); // Estaba protegido
+                                    packet.Write(true);
                                     packet.Send();
-                                    // Actualizar el texto y posición
-                                    protectButton.SetText("Proteger cofre");
-                                    protectButton.Top.Pixels = 428; // Posición original
+                                    protectButton.SetText(GetLocalizedText("Mods.SafeChests.UI.ProtectChest"));
+                                    protectButton.Top.Pixels = 428;
                                 }
                                 else
                                 {
-                                    // Modo de un solo jugador o servidor
                                     ChestProtectionSystem.ToggleChestProtection(chest.x, chest.y, "");
-                                    protectButton.SetText("Proteger cofre");
-                                    protectButton.Top.Pixels = 428; // Posición original
+                                    protectButton.SetText(GetLocalizedText("Mods.SafeChests.UI.ProtectChest"));
+                                    protectButton.Top.Pixels = 428;
                                 }
                                 unlockPasswordInput.Text = "";
                                 currentMode = UIMode.None;
                             }
                             else
                             {
-                                ChestProtectionSystem.SendMessageToAll("Contraseña incorrecta.", Color.Red);
+                                ChestProtectionSystem.SendMessageToAll(
+                                    GetLocalizedText("Mods.SafeChests.Messages.IncorrectPassword"),
+                                    Color.Red);
                             }
                         }
                         UpdateUIElements();
@@ -251,26 +385,28 @@ namespace SafeChests.UI
                 }
                 else if (!IsRealChest())
                 {
-                    ChestProtectionSystem.SendMessageToAll("Solo se pueden proteger cofres del mundo.", Color.Red);
+                    ChestProtectionSystem.SendMessageToAll(
+                        GetLocalizedText("Mods.SafeChests.Messages.OnlyWorldChests"),
+                        Color.Red);
                     currentMode = UIMode.None;
                     UpdateUIElements();
                 }
                 else
                 {
-                    ChestProtectionSystem.SendMessageToAll("No hay ningún cofre abierto.", Color.Red);
+                    ChestProtectionSystem.SendMessageToAll(
+                        GetLocalizedText("Mods.SafeChests.Messages.NoChestOpen"),
+                        Color.Red);
                     currentMode = UIMode.None;
-                    UpdateUIElements(); // Actualizar la UI del usuario dependiendo del modo
+                    UpdateUIElements();
                 }
             };
 
-            // Agregar los elementos a la UI
             Append(protectButton);
-            UpdateUIElements(); // Configurar visibilidad inicial
+            UpdateUIElements();
         }
 
         private void UpdateUIElements()
         {
-            // Eliminar todos los elementos relacionados con la entrada de texto
             passwordLabel.Remove();
             passwordInput.Remove();
             confirmPasswordLabel.Remove();
@@ -279,7 +415,6 @@ namespace SafeChests.UI
             unlockPasswordInput.Remove();
             acceptButton.Remove();
 
-            // Añadir elementos en función del modo actual y ajustar posición de acceptButton
             if (currentMode == UIMode.Protect)
             {
                 if (!Children.Contains(passwordLabel)) Append(passwordLabel);
@@ -287,14 +422,14 @@ namespace SafeChests.UI
                 if (!Children.Contains(confirmPasswordLabel)) Append(confirmPasswordLabel);
                 if (!Children.Contains(confirmPasswordInput)) Append(confirmPasswordInput);
                 if (!Children.Contains(acceptButton)) Append(acceptButton);
-                acceptButton.Top.Pixels = 470; // Posición original para modo Protect
+                acceptButton.Top.Pixels = 470;
             }
             else if (currentMode == UIMode.Unlock)
             {
                 if (!Children.Contains(unlockPasswordLabel)) Append(unlockPasswordLabel);
                 if (!Children.Contains(unlockPasswordInput)) Append(unlockPasswordInput);
                 if (!Children.Contains(acceptButton)) Append(acceptButton);
-                acceptButton.Top.Pixels = 300; // Posición para modo Unlock
+                acceptButton.Top.Pixels = 300;
             }
         }
 
@@ -302,13 +437,26 @@ namespace SafeChests.UI
         {
             base.Update(gameTime);
 
-            // Solo procesar si es un cofre real
+            // Detectar cambio de idioma
+            string currentLanguage = Language.ActiveCulture.Name;
+            if (currentLanguage != lastLanguage)
+            {
+                lastLanguage = currentLanguage;
+                needsLanguageUpdate = true;
+            }
+
+            // Actualizar textos si cambió el idioma
+            if (needsLanguageUpdate)
+            {
+                UpdateAllTexts();
+                needsLanguageUpdate = false;
+            }
+
             if (!IsRealChest())
             {
                 return;
             }
 
-            // Detectar cambios en las entradas de texto
             if (currentMode == UIMode.Protect)
             {
                 if (passwordInput.Text != lastPasswordInput)
@@ -328,11 +476,9 @@ namespace SafeChests.UI
                 }
             }
 
-            // Comprueba si el cofre ha cambiado o el inventario está cerrado
             Player player = Main.player[Main.myPlayer];
             if (player.chest != lastChestIndex)
             {
-                // Limpiar los campos de texto cuando se cambia de cofre o se cierra el cofre
                 passwordInput.Text = "";
                 confirmPasswordInput.Text = "";
                 unlockPasswordInput.Text = "";
@@ -347,9 +493,12 @@ namespace SafeChests.UI
                     if (chest != null)
                     {
                         bool isLocked = ChestProtectionSystem.IsChestProtected(chest.x, chest.y);
-                        protectButton.SetText(isLocked ? "Desbloquear cofre" : "Proteger cofre");
-                        protectButton.Top.Pixels = isLocked ? 258 : 428; // 258 para "Desbloquear", 428 para "Proteger"
-                        currentMode = UIMode.None; // Siempre se restablece a None al cambiar de cofre
+                        string buttonText = isLocked ?
+                            GetLocalizedText("Mods.SafeChests.UI.UnlockChest") :
+                            GetLocalizedText("Mods.SafeChests.UI.ProtectChest");
+                        protectButton.SetText(buttonText);
+                        protectButton.Top.Pixels = isLocked ? 258 : 428;
+                        currentMode = UIMode.None;
                     }
                 }
                 else
@@ -370,15 +519,17 @@ namespace SafeChests.UI
                 if (chest != null)
                 {
                     bool isLocked = ChestProtectionSystem.IsChestProtected(chest.x, chest.y);
-                    protectButton.SetText(isLocked ? "Desbloquear cofre" : "Proteger cofre");
-                    protectButton.Top.Pixels = isLocked ? 258 : 428; // 258 para "Desbloquear", 428 para "Proteger"
-                    currentMode = UIMode.None; // Siempre se restablece a None al cambiar de cofre
+                    string buttonText = isLocked ?
+                        GetLocalizedText("Mods.SafeChests.UI.UnlockChest") :
+                        GetLocalizedText("Mods.SafeChests.UI.ProtectChest");
+                    protectButton.SetText(buttonText);
+                    protectButton.Top.Pixels = isLocked ? 258 : 428;
+                    currentMode = UIMode.None;
                     UpdateUIElements();
                 }
             }
             else
             {
-                // Limpiar los campos de texto cuando no hay cofre abierto o no es un cofre real
                 passwordInput.Text = "";
                 confirmPasswordInput.Text = "";
                 unlockPasswordInput.Text = "";
@@ -388,13 +539,17 @@ namespace SafeChests.UI
                 currentMode = UIMode.None;
                 UpdateUIElements();
             }
+
+            // Actualizar textos al activar la UI
+            UpdateAllTexts();
         }
 
-        // Actualizar el texto del botón
         public void UpdateButtonText(string text)
         {
             protectButton?.SetText(text);
-            protectButton.Top.Pixels = text == "Desbloquear cofre" ? 258 : 428; // Ajustar posición según el texto
+            string unlockText = GetLocalizedText("Mods.SafeChests.UI.UnlockChest");
+            bool isUnlock = text == unlockText;
+            protectButton.Top.Pixels = isUnlock ? 258 : 428;
             currentMode = UIMode.None;
             UpdateUIElements();
         }

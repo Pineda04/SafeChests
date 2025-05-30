@@ -1,0 +1,24 @@
+Mods: {
+	SafeChests: {
+		UI: {
+			ProtectChest: Proteger cofre
+			UnlockChest: Desbloquear cofre
+			Password: Contraseña:
+			Confirm: Confirmar:
+			EnterPassword: Ingresar contraseña
+			Accept: Aceptar
+			PasswordPlaceholder: Escribe la contraseña
+			ConfirmPlaceholder: Confirma la contraseña
+			UnlockPlaceholder: Ingresa la contraseña
+		}
+
+		Messages: {
+			OnlyWorldChests: Solo se pueden proteger cofres del mundo.
+			NoChestOpen: No hay ningún cofre abierto.
+			EmptyPassword: La contraseña no puede estar vacía.
+			PasswordMismatch: Las contraseñas no coinciden.
+			IncorrectPassword: Contraseña incorrecta.
+			UIInitialized: SafeChests: UI inicializada
+		}
+	}
+}
