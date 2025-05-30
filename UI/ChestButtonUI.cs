@@ -25,6 +25,25 @@ namespace SafeChests.UI
         private UIMode currentMode = UIMode.None; // Modo actual de la UI
         private int lastChestIndex = -1; // Seguimiento del último cofre abierto para detectar cambios
 
+        // Método para verificar si el contenedor abierto es un cofre real
+        private bool IsRealChest()
+        {
+            Player player = Main.player[Main.myPlayer];
+            
+            // Verificar si hay un cofre abierto
+            if (player.chest == -1) return false;
+            
+            // Verificar si no es hucha, caja fuerte, cofre del vacío, cofre de equipo, etc.
+            if (player.chest == -2) return false; // Hucha
+            if (player.chest == -3) return false; // Caja fuerte
+            if (player.chest == -4) return false; // Cofre del Vacío
+            if (player.chest == -5) return false; // Cofre de Equipo
+            
+            // Si el índice es positivo, es un cofre real en el mundo
+            Chest chest = Main.chest[player.chest];
+            return chest != null;
+        }
+
         public override void OnInitialize()
         {
             // Asegurarse de que el texto inicial no sea null
@@ -47,7 +66,7 @@ namespace SafeChests.UI
                 Player player = Main.player[Main.myPlayer];
                 int chestIndex = player.chest;
 
-                if (chestIndex != -1)
+                if (chestIndex != -1 && IsRealChest())
                 {
                     Chest chest = Main.chest[chestIndex];
                     if (chest != null)
@@ -57,6 +76,11 @@ namespace SafeChests.UI
                         protectButton.SetText(isLocked ? "Desbloquear cofre" : "Proteger cofre");
                         protectButton.Top.Pixels = isLocked ? 258 : 428; // 258 para "Desbloquear", 428 para "Proteger"
                     }
+                }
+                else if (!IsRealChest())
+                {
+                    ChestProtectionSystem.SendMessageToAll("Solo se pueden proteger cofres del mundo.", Color.Red);
+                    currentMode = UIMode.None;
                 }
                 else
                 {
@@ -141,7 +165,7 @@ namespace SafeChests.UI
                 Player player = Main.player[Main.myPlayer];
                 int chestIndex = player.chest;
 
-                if (chestIndex != -1)
+                if (chestIndex != -1 && IsRealChest())
                 {
                     Chest chest = Main.chest[chestIndex];
                     if (chest != null)
@@ -225,6 +249,12 @@ namespace SafeChests.UI
                         UpdateUIElements();
                     }
                 }
+                else if (!IsRealChest())
+                {
+                    ChestProtectionSystem.SendMessageToAll("Solo se pueden proteger cofres del mundo.", Color.Red);
+                    currentMode = UIMode.None;
+                    UpdateUIElements();
+                }
                 else
                 {
                     ChestProtectionSystem.SendMessageToAll("No hay ningún cofre abierto.", Color.Red);
@@ -272,6 +302,12 @@ namespace SafeChests.UI
         {
             base.Update(gameTime);
 
+            // Solo procesar si es un cofre real
+            if (!IsRealChest())
+            {
+                return;
+            }
+
             // Detectar cambios en las entradas de texto
             if (currentMode == UIMode.Protect)
             {
@@ -305,7 +341,7 @@ namespace SafeChests.UI
                 lastUnlockPasswordInput = "";
 
                 lastChestIndex = player.chest;
-                if (player.chest != -1)
+                if (player.chest != -1 && IsRealChest())
                 {
                     Chest chest = Main.chest[player.chest];
                     if (chest != null)
@@ -328,7 +364,7 @@ namespace SafeChests.UI
         {
             Player player = Main.player[Main.myPlayer];
             lastChestIndex = player.chest;
-            if (player.chest != -1)
+            if (player.chest != -1 && IsRealChest())
             {
                 Chest chest = Main.chest[player.chest];
                 if (chest != null)
@@ -342,7 +378,7 @@ namespace SafeChests.UI
             }
             else
             {
-                // Limpiar los campos de texto cuando no hay cofre abierto
+                // Limpiar los campos de texto cuando no hay cofre abierto o no es un cofre real
                 passwordInput.Text = "";
                 confirmPasswordInput.Text = "";
                 unlockPasswordInput.Text = "";

@@ -67,10 +67,24 @@ namespace SafeChests.UI
         public override void Update(GameTime gameTime)
         {
             base.Update(gameTime);
+            
+            // Verificar si el mouse está fuera de este elemento y se hace clic
             if (_focused && Main.mouseLeft && !ContainsPoint(new Vector2(Main.mouseX, Main.mouseY)))
             {
                 _focused = false;
             }
+            
+            // Si este elemento está enfocado, asegurarse de que PlayerInput esté habilitado
+            if (_focused)
+            {
+                Terraria.GameInput.PlayerInput.WritingText = true;
+            }
+        }
+
+        public override void OnDeactivate()
+        {
+            _focused = false;
+            base.OnDeactivate();
         }
     }
 }

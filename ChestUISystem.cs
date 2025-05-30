@@ -27,11 +27,30 @@ namespace SafeChests
 
         public override void UpdateUI(GameTime gameTime)
         {
-            // Solo actualizar la UI en el cliente
-            if (Main.netMode != NetmodeID.Server && Main.playerInventory && Main.player[Main.myPlayer].chest != -1)
+            // Solo actualizar la UI en el cliente y solo para cofres reales
+            if (Main.netMode != NetmodeID.Server && Main.playerInventory && IsRealChest())
             {
                 _chestInterface?.Update(gameTime);
             }
+        }
+
+        // Método para verificar si el contenedor abierto es un cofre real
+        private bool IsRealChest()
+        {
+            Player player = Main.player[Main.myPlayer];
+            
+            // Verificar si hay un cofre abierto
+            if (player.chest == -1) return false;
+            
+            // Verificar si no es hucha, caja fuerte, cofre del vacío, cofre de equipo, etc.
+            if (player.chest == -2) return false; // Hucha
+            if (player.chest == -3) return false; // Caja fuerte
+            if (player.chest == -4) return false; // Cofre del Vacío
+            if (player.chest == -5) return false; // Cofre de Equipo
+            
+            // Si el índice es positivo, es un cofre real en el mundo
+            Chest chest = Main.chest[player.chest];
+            return chest != null;
         }
 
         public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
@@ -46,22 +65,23 @@ namespace SafeChests
                         "SafeChests: Chest UI",
                         delegate
                         {
-                            if (Main.playerInventory && Main.player[Main.myPlayer].chest != -1)
+                            if (Main.playerInventory && IsRealChest())
                             {
-                                Chest chest = Main.chest[Main.player[Main.myPlayer].chest];
+                                Player player = Main.player[Main.myPlayer];
+                                Chest chest = Main.chest[player.chest];
                                 if (chest != null)
                                 {
                                     bool isLocked = ChestProtectionSystem.IsChestProtected(chest.x, chest.y);
 
-                                    // Dibujar siempre la interfaz de usuario personalizada
+                                    // Dibujar siempre la interfaz de usuario personalizada para cofres reales
                                     _chestInterface.Draw(Main.spriteBatch, new GameTime());
                                     Main.instance.invBottom = isLocked ? 1000 : 258;
                                 }
-                                else
-                                {
-                                    // Mostrar inventario normal si el cofre es nulo
-                                    Main.instance.invBottom = 258;
-                                }
+                            }
+                            else if (Main.playerInventory && Main.player[Main.myPlayer].chest != -1 && !IsRealChest())
+                            {
+                                // Para contenedores especiales (hucha, caja fuerte, etc.), usar comportamiento normal
+                                Main.instance.invBottom = 258;
                             }
                             return true;
                         },
@@ -75,7 +95,7 @@ namespace SafeChests
             if (Main.netMode != NetmodeID.Server && _chestButtonUI != null)
             {
                 Player player = Main.player[Main.myPlayer];
-                if (player.chest != -1)
+                if (IsRealChest())
                 {
                     Chest chest = Main.chest[player.chest];
                     if (chest != null)
